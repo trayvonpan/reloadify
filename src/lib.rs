@@ -16,7 +16,10 @@ use std::{
     any::Any,
     collections::HashMap,
     path::Path,
-    sync::{Arc, RwLock},
+    sync::{
+        mpsc::{channel, Receiver},
+        Arc, RwLock,
+    },
     time::Duration,
 };
 #[cfg(feature = "toml")]
@@ -99,11 +102,12 @@ impl Reloadify {
     /// Returns a result containing the deserialized configuration if successful, or an error if an
     /// error occurred.
     #[allow(unreachable_code, unused_variables)]
-    pub fn add<C>(&self, reloadable_config: ReloadableConfig) -> Result<C, ReloadifyError>
+    pub fn add<C>(&self, reloadable_config: ReloadableConfig) -> Result<Receiver<C>, ReloadifyError>
     where
         C: DeserializeOwned + Send + Sync + Clone + 'static,
     {
         let cfg = self.load::<C>(reloadable_config.path, &reloadable_config.format)?;
+        let (tx, rx) = channel();
 
         let c = reloadable_config.clone();
         let s = self.clone();
@@ -117,6 +121,7 @@ impl Reloadify {
                     if let Some(cfg) = guard.get_mut(&c.id);
                     then {
                         cfg.value = Box::new(new_cfg.clone());
+                        let _ = tx.send(new_cfg);
                     }
                 );
             },
@@ -134,7 +139,7 @@ impl Reloadify {
                     value: Box::new(cfg.clone()),
                     _watcher: watcher,
                 });
-                Ok(cfg)
+                Ok(rx)
             }
             Err(_) => Err(ReloadifyError::GetLockError),
         }
