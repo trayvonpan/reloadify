@@ -74,6 +74,8 @@ pub enum ReloadifyError {
     DowncastError,
     #[error("Config does not exist")]
     ConfigNotExist,
+    #[error("Failed to send config")]
+    SendError,
 }
 
 /// Represents a reloadable configuration.
@@ -106,8 +108,11 @@ impl Reloadify {
     where
         C: DeserializeOwned + Send + Sync + Clone + 'static,
     {
-        let cfg = self.load::<C>(reloadable_config.path.as_path(), &reloadable_config.format)?;
+        let initial_cfg =
+            self.load::<C>(reloadable_config.path.as_path(), &reloadable_config.format)?;
         let (tx, rx) = channel();
+        tx.send(initial_cfg.clone())
+            .map_err(|_| ReloadifyError::SendError)?;
 
         let c = reloadable_config.clone();
         let s = self.clone();
@@ -116,12 +121,12 @@ impl Reloadify {
                 if_chain!(
                     if let Ok(event) = r;
                     if event.kind.is_modify();
-                    if let Ok(new_cfg) = s.load::<C>(c.path.as_path(), &c.format);
+                    if let Ok(latest_cfg) = s.load::<C>(c.path.as_path(), &c.format);
                     if let Ok(mut guard) = s.0.write();
-                    if let Some(cfg) = guard.get_mut(&c.id);
+                    if let Some(current_cfg) = guard.get_mut(&c.id);
                     then {
-                        cfg.value = Box::new(new_cfg.clone());
-                        let _ = tx.send(new_cfg);
+                        current_cfg.value = Box::new(latest_cfg.clone());
+                        let _ = tx.send(latest_cfg);
                     }
                 );
             },
@@ -136,16 +141,13 @@ impl Reloadify {
             )
             .map_err(ReloadifyError::WatchError)?;
 
-        match self.0.write() {
-            Ok(mut guard) => {
-                guard.entry(reloadable_config.id).or_insert(Config {
-                    value: Box::new(cfg.clone()),
-                    _watcher: watcher,
-                });
-                Ok(rx)
-            }
-            Err(_) => Err(ReloadifyError::GetLockError),
-        }
+        let mut guard = self.0.write().map_err(|_| ReloadifyError::GetLockError)?;
+        guard.entry(reloadable_config.id).or_insert(Config {
+            value: Box::new(initial_cfg),
+            _watcher: watcher,
+        });
+
+        Ok(rx)
     }
 
     /// Retrieves a configuration from the `Reloadify` instance.
