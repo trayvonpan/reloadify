@@ -15,7 +15,7 @@ use std::fs;
 use std::{
     any::Any,
     collections::HashMap,
-    path::Path,
+    path::{Path, PathBuf},
     sync::{
         mpsc::{channel, Receiver},
         Arc, RwLock,
@@ -80,7 +80,7 @@ pub enum ReloadifyError {
 #[derive(Debug, Clone)]
 pub struct ReloadableConfig {
     pub id: ConfigId,
-    pub path: &'static Path,
+    pub path: PathBuf,
     pub format: Format,
     pub poll_interval: Duration,
 }
@@ -106,7 +106,7 @@ impl Reloadify {
     where
         C: DeserializeOwned + Send + Sync + Clone + 'static,
     {
-        let cfg = self.load::<C>(reloadable_config.path, &reloadable_config.format)?;
+        let cfg = self.load::<C>(reloadable_config.path.as_path(), &reloadable_config.format)?;
         let (tx, rx) = channel();
 
         let c = reloadable_config.clone();
@@ -116,7 +116,7 @@ impl Reloadify {
                 if_chain!(
                     if let Ok(event) = r;
                     if event.kind.is_modify();
-                    if let Ok(new_cfg) = s.load::<C>(c.path, &c.format);
+                    if let Ok(new_cfg) = s.load::<C>(c.path.as_path(), &c.format);
                     if let Ok(mut guard) = s.0.write();
                     if let Some(cfg) = guard.get_mut(&c.id);
                     then {
@@ -130,7 +130,10 @@ impl Reloadify {
         .map_err(ReloadifyError::WatchError)?;
 
         watcher
-            .watch(reloadable_config.path, notify::RecursiveMode::NonRecursive)
+            .watch(
+                reloadable_config.path.as_path(),
+                notify::RecursiveMode::NonRecursive,
+            )
             .map_err(ReloadifyError::WatchError)?;
 
         match self.0.write() {

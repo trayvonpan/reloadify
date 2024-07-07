@@ -1,5 +1,5 @@
 use reloadify::{ConfigId, Format, ReloadableConfig, Reloadify};
-use std::{path::Path, time::Duration};
+use std::{path::PathBuf, str::FromStr, time::Duration};
 
 const COMPOSE_CONFIG_ID: &str = "docker-compose";
 const PYTEST_CONFIG_ID: &str = "pytest";
@@ -9,13 +9,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     reloadify.add::<compose::ComposeConfig>(ReloadableConfig {
         id: ConfigId::new(COMPOSE_CONFIG_ID),
-        path: Path::new("examples/config/docker-compose.yaml"),
+        path: PathBuf::from_str("examples/config/docker-compose.yaml")?,
         format: Format::Yaml,
         poll_interval: Duration::from_secs(1),
     })?;
     reloadify.add::<pytest::PyTestConfig>(ReloadableConfig {
         id: ConfigId::new(PYTEST_CONFIG_ID),
-        path: Path::new("examples/config/pytest.ini"),
+        path: PathBuf::from_str("examples/config/pytest.ini")?,
         format: Format::Ini,
         poll_interval: Duration::from_millis(100),
     })?;
