@@ -26,7 +26,7 @@ Here's a basic example demonstrating how to use Reloadify to automatically reloa
 ```rust
 use reloadify::{ConfigId, Format, ReloadableConfig, Reloadify};
 use serde::{Deserialize, Serialize};
-use std::{path::Path, time::Duration};
+use std::{path::PathBuf, str::FromStr, time::Duration};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TsConfig {
@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let rx = reloadify.add::<TsConfig>(ReloadableConfig {
         id: ConfigId::new(TS_CONFIG_ID),
-        path: Path::new("examples/config/tsconfig.spec.json"),
+        path: PathBuf::from_str("examples/config/tsconfig.spec.json")?,
         format: Format::Json,
         poll_interval: Duration::from_secs(1),
     })?;
@@ -71,6 +71,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
 ```
 
 ## Documentation 📚
