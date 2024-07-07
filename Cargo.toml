@@ -1,0 +1,31 @@
+[package]
+name = "reloadify"
+version = "0.1.0"
+edition = "2021"
+authors = ["Trayvon Pan <trayvonpan@gmail.com>"]
+categories = ["Configuration", "Filesystem"]
+description = "A library for automatically reloading configuration files"
+documentation = "https://docs.rs/reloadify/"
+keywords = ["reload", "watch", "notify", "config"]
+license = "MIT"
+repository = "https://github.com/trayvonpan/reloadify/"
+readme = "README.md"
+
+[features]
+json = ["dep:serde_json"]
+yaml = ["dep:serde_yaml"]
+toml = ["dep:toml"]
+xml = ["dep:serde-xml-rs"]
+ini = ["dep:serde_ini"]
+default = ["json", "yaml", "toml", "xml", "ini"]
+
+[dependencies]
+notify = "6.1"
+thiserror = "1.0"
+if_chain = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", optional = true }
+serde_yaml = { version = "0.9", optional = true }
+toml = { version = "0.8", optional = true }
+serde-xml-rs = { version = "0.6", optional = true }
+serde_ini = { version = "0.2", optional = true }
