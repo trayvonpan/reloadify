@@ -24,7 +24,7 @@ reloadify = "0.1"
 Here's a basic example demonstrating how to use Reloadify to automatically reload a JSON configuration file:
 
 ```rust
-uuse reloadify::{ConfigId, Format, ReloadableConfig, Reloadify};
+use reloadify::{ConfigId, Format, ReloadableConfig, Reloadify};
 use serde::{Deserialize, Serialize};
 use std::{path::Path, time::Duration};
 
