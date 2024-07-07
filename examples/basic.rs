@@ -23,12 +23,20 @@ const TS_CONFIG_ID: &str = "tsconfig";
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let reloadify = Reloadify::new();
 
-    reloadify.add::<TsConfig>(ReloadableConfig {
+    let rx = reloadify.add::<TsConfig>(ReloadableConfig {
         id: ConfigId::new(TS_CONFIG_ID),
         path: Path::new("examples/config/tsconfig.spec.json"),
         format: Format::Json,
         poll_interval: Duration::from_secs(1),
     })?;
+
+    // Optional: Spawn a thread to listen for the latest configuration.
+    std::thread::spawn(move || {
+        for latest_cfg in rx {
+            // Do something with the latest configuration...
+            println!("Received latest config: {:?}", latest_cfg);
+        }
+    });
 
     let ts_config = reloadify.get::<TsConfig>(ConfigId::new(TS_CONFIG_ID))?;
 

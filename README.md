@@ -8,7 +8,7 @@ Reloadify is a Rust library designed to facilitate automatic reloading of config
 - [x] **Supports Multiple Formats**: Works with JSON, TOML, XML, and more.
 - [x] **Easy Integration**: Designed for seamless integration into Rust applications.
 - [ ] **Customizable**: Allows customization of file watching strategies and reload behaviors.
-- [ ] **Live Changes**: Returns a configuration receiving channel. When the configuration changes, the caller will receive latest configuration.
+- [x] **Live Changes**: Returns a configuration receiving channel. When the configuration changes, the caller will receive latest configuration.
 
 ## Installation 🚀
 
@@ -24,7 +24,7 @@ reloadify = "0.1"
 Here's a basic example demonstrating how to use Reloadify to automatically reload a JSON configuration file:
 
 ```rust
-use reloadify::{ConfigId, Format, ReloadableConfig, Reloadify};
+uuse reloadify::{ConfigId, Format, ReloadableConfig, Reloadify};
 use serde::{Deserialize, Serialize};
 use std::{path::Path, time::Duration};
 
@@ -49,12 +49,20 @@ const TS_CONFIG_ID: &str = "tsconfig";
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let reloadify = Reloadify::new();
 
-    reloadify.add::<TsConfig>(ReloadableConfig {
+    let rx = reloadify.add::<TsConfig>(ReloadableConfig {
         id: ConfigId::new(TS_CONFIG_ID),
         path: Path::new("examples/config/tsconfig.spec.json"),
         format: Format::Json,
         poll_interval: Duration::from_secs(1),
     })?;
+
+    // Optional: Spawn a thread to listen for the latest configuration.
+    std::thread::spawn(move || {
+        for latest_cfg in rx {
+            // Do something with the latest configuration...
+            println!("Received latest config: {:?}", latest_cfg);
+        }
+    });
 
     let ts_config = reloadify.get::<TsConfig>(ConfigId::new(TS_CONFIG_ID))?;
 
