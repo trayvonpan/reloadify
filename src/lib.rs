@@ -1,6 +1,9 @@
 #[allow(unused_imports)]
 use if_chain::if_chain;
-use notify::{Error, Event, RecommendedWatcher, Watcher};
+use notify::{
+    event::{DataChange, ModifyKind},
+    Error, Event, EventKind, RecommendedWatcher, Watcher,
+};
 use serde::de::DeserializeOwned;
 #[cfg(feature = "xml")]
 use serde_xml_rs as serde_xml;
@@ -120,7 +123,8 @@ impl Reloadify {
             move |r: Result<Event, Error>| {
                 if_chain!(
                     if let Ok(event) = r;
-                    if event.kind.is_modify();
+                    if let EventKind::Modify(ModifyKind::Data(chg)) = event.kind;
+                    if chg == DataChange::Content;
                     if let Ok(latest_cfg) = s.load::<C>(c.path.as_path(), &c.format);
                     if let Ok(mut guard) = s.0.write();
                     if let Some(current_cfg) = guard.get_mut(&c.id);
